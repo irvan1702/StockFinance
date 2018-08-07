@@ -1,0 +1,4 @@
+1. Untuk menghitung waktu yang dibutuhkan oleh HTTP request dapat menggunakan cara 2 dan 4. 
+   Keduanya menghitung selisih waktu sebelum dan sesudah HTTP request, namun yang membedakan hanya hasil kembaliaanya.
+    - Cara ke-2 akan mengembalikan selisih waktu dalam satuan detik.
+    - Cara ke-4 akan mengembalikan selisih waktu dalam bentuk Struct/Object Time lengkap dengan TimeZonenya.
