@@ -1,0 +1,31 @@
+<html lang="en">
+    <head>
+        <title>List of Stocks</title>
+    </head>
+    <body>
+        <h1>List of Stock Finance</h1>
+        <table>
+            <tr>
+                <th>Date</th>
+                <th>Open Price</th>
+                <th>High Price</th>
+                <th>Low Price</th>
+                <th>Close Price</th>
+                <th>Volume</th>
+                <th>Action</th>
+            </tr>
+            {{range .}}
+            <tr>
+                <td>{{.Date}}</td>
+                <td>{{.Open}}</td> 
+                <td>{{.High}}</td>
+                <td>{{.Low}}</td> 
+                <td>{{.Close}}</td>
+                <td>{{.Volume}}</td>
+                <td>{{.Action}}</td>
+            </tr>
+            {{end}}
+        </table>
+         <p><a href="/stocks/form">Add Stocks</a></p>
+    </body>
+</html>
