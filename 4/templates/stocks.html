@@ -1,4 +1,4 @@
-<html lang="en">
+{{define "stocks" }}<html lang="en">
     <head>
         <title>List of Stocks</title>
     </head>
@@ -14,7 +14,7 @@
                 <th>Volume</th>
                 <th>Action</th>
             </tr>
-            {{range .}}
+            {{range .List}}
             <tr>
                 <td>{{.Date}}</td>
                 <td>{{.Open}}</td> 
@@ -24,8 +24,8 @@
                 <td>{{.Volume}}</td>
                 <td>{{.Action}}</td>
             </tr>
-            {{end}}
+            {{ end }}
         </table>
          <p><a href="/stocks/form">Add Stocks</a></p>
     </body>
-</html>
+</html>{{end}}

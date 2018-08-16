@@ -3,15 +3,21 @@ package main
 import (
 	"StockFinance/4/config"
 	"StockFinance/4/entity"
-	"fmt"
+	"html/template"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 )
 
+var render *template.Template
+
 func main() {
 	config.Init()
+	render = template.Must(template.ParseGlob("templates/*.html"))
 	http.HandleFunc("/", index)
+	//calculateProfit2()
+	calculateProfit()
 	http.HandleFunc("/stocks", getAllStocks)
 	http.HandleFunc("/stocks/form", createForm)
 	http.HandleFunc("/stocks/create", createStocks)
@@ -23,18 +29,19 @@ func index(w http.ResponseWriter, r *http.Request) {
 }
 
 func getAllStocks(w http.ResponseWriter, r *http.Request) {
+
 	if r.Method != "GET" {
 		http.Error(w, "Method not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	rows, err := config.Db.Query("SELECT * FROM stocks;")
+	rows, err := config.Db.Query("SELECT * FROM stocks ORDER BY date ASC;")
 	if err != nil {
-		http.Error(w, "IULALALA", 500)
+		http.Error(w, "General Error", 500)
 	}
 	defer rows.Close()
 
-	stocks := make([]entity.Stock, 0)
+	response := entity.Response{}
 	for rows.Next() {
 		stk := entity.Stock{}
 		err := rows.Scan(&stk.Id, &stk.Date, &stk.Open, &stk.High, &stk.Low, &stk.Close, &stk.Volume, &stk.Action)
@@ -43,22 +50,45 @@ func getAllStocks(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		stocks = append(stocks, stk)
-		for _, value := range stocks {
-			value.Date.Format("2006-01-02")
-		}
+		response.List = append(response.List, stk)
 	}
-	if err = rows.Err(); err != nil {
-		http.Error(w, http.StatusText(500), 500)
-		return
-	}
+	//fmt.Println(response.List)
+	//fmt.Println(calculateProfit(response.List))
+	response.Summary = calculateProfit()
 
-	config.Tpl.ExecuteTemplate(w, "stocks.gohtml", stocks)
+	failed := render.ExecuteTemplate(w, "index.html", response)
+
+	if failed != nil {
+		panic(failed)
+	}
 
 }
 
+func getProfit() []entity.Profit {
+	rows, err := config.Db.Query("SELECT date,close_price FROM stocks")
+	if err != nil {
+		panic(err)
+	}
+
+	priceList := []entity.Profit{}
+
+	for rows.Next() {
+		profit := entity.Profit{}
+		err := rows.Scan(&profit.Date, &profit.ClosePrice)
+		if err != nil {
+			panic(err)
+		}
+
+		priceList = append(priceList, profit)
+	}
+	sort.Slice(priceList, func(i, j int) bool {
+		return priceList[i].ClosePrice < priceList[j].ClosePrice
+	})
+	return priceList
+}
+
 func createForm(w http.ResponseWriter, r *http.Request) {
-	config.Tpl.ExecuteTemplate(w, "form.gohtml", nil)
+	render.ExecuteTemplate(w, "form.html", nil)
 }
 
 func createStocks(w http.ResponseWriter, r *http.Request) {
@@ -93,7 +123,7 @@ func createStocks(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	stk.Action = "buy"
+	stk.Action = setAction(stk.Open, stk.Close)
 
 	_, err = config.Db.Exec("INSERT INTO stocks (date, open_price, high_price, low_price, close_price, volume,action) VALUES ($1, $2, $3, $4, $5, $6, $7)", stk.Date, stk.Open, stk.High, stk.Low, stk.Close, stk.Volume, stk.Action)
 	if err != nil {
@@ -101,38 +131,25 @@ func createStocks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	config.Tpl.ExecuteTemplate(w, "confirmation.gohtml", stk)
+	render.ExecuteTemplate(w, "confirmation.html", stk)
 
 }
 
-func calculateProfit() {
-	priceList := []int{100, 120, 100, 130}
-	priceMin := priceList[0]
-	priceMax := priceList[0]
-	different := 0
-	// buyValue := 0
-	// sellValue := 0
-	profit := 0
-
-	for i := 0; i < len(priceList)-1; i++ {
-		if priceMax < priceList[i+1] {
-			priceMax = priceList[i+1]
-		} else {
-			different = priceMax - priceMin
-			if different > profit {
-				profit = different
-				//profit, buyValue, sellValue = different, priceMin, priceMax
-			}
-			priceMin, priceMax = priceList[i+1], priceList[i+1]
-		}
-		//fmt.Println(priceMin,priceMax,buyValue, sellValue, profit)
-
-	}
-	different = priceMax - priceMin
-	if different > profit {
-		profit = different
-		//profit, buyValue, sellValue = different, priceMin, priceMax
+func setAction(openPrice, closePrice int) string {
+	if openPrice < closePrice {
+		return "sell"
+	} else if openPrice > closePrice {
+		return "buy"
+	} else {
+		return "hold"
 	}
 
-	fmt.Println(priceMin, priceMax, profit)
+}
+
+func calculateProfit() string {
+
+	listStock := getProfit()
+
+	result := "profit is :" + strconv.Itoa(listStock[len(listStock)-1].ClosePrice-listStock[0].ClosePrice) + "between" + listStock[len(listStock)-1].Date.String() + "and" + listStock[0].Date.String()
+	return result
 }

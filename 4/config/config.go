@@ -13,7 +13,7 @@ var Tpl *template.Template
 
 func Init() {
 	var err error
-	Db, err = sql.Open("postgres", "postgres://postgres:s9IhZBEb@/StockFinance?sslmode=disable")
+	Db, err = sql.Open("postgres", "postgres://postgres:password@/StockFinance?sslmode=disable")
 	if err != nil {
 		panic(err)
 	}
@@ -22,6 +22,4 @@ func Init() {
 		panic(err)
 	}
 	fmt.Println("Database Connected")
-
-	Tpl = template.Must(template.ParseGlob("templates/*.gohtml"))
 }
